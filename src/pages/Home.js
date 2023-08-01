@@ -1,16 +1,17 @@
 import React, { Component, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-
+import Stats from 'stats.js';
 
 function ThreeMap() {
     useEffect(() => {
         iniThree()
     }, [])
+
     const iniThree = () => { //初始化方法
-       
+
         const container = document.getElementById('container')
-        
+        var stats = initStats();
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
 
@@ -24,12 +25,12 @@ function ThreeMap() {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMapEnabled = true;
         // show axes in the screen
-        // var axes = new THREE.AxesHelper(20);
-        // scene.add(axes);
+        var axes = new THREE.AxesHelper(20);
+        scene.add(axes);
 
         // create the ground plane
         var planeGeometry = new THREE.PlaneGeometry(60, 20);
-        var planeMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
+        var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
         var plane = new THREE.Mesh(planeGeometry, planeMaterial);
         plane.receiveShadow = true;
         // rotate and position the plane
@@ -43,20 +44,26 @@ function ThreeMap() {
 
         // create a cube
         var cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
-        var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+        var cubeMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
         var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        //会照亮场景里的全部物体（氛围灯），前提是物体是可以接受灯光的，这种灯是无方向的，即不会有阴影。
+        const ambient2 = new THREE.AmbientLight(0x0c0c0c, 0.4);
+        const light2 = new THREE.PointLight(0xffffff, 1);//点光源，color:灯光颜色，intensity:光照强度
+
         cube.castShadow = true;
         // position the cube
         cube.position.x = -4;
         cube.position.y = 3;
         cube.position.z = 0;
-
+        scene.add(ambient2);
+        light2.position.set(200, 300, 400);
+        scene.add(light2)
         // add the cube to the scene
         scene.add(cube);
 
         // create a sphere
         var sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
-        var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x7777ff, wireframe: true});
+        var sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x7777ff, wireframe: true });
         var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
         // position the sphere
@@ -76,7 +83,7 @@ function ThreeMap() {
         var spotLight = new THREE.SpotLight(0xffffff);
         spotLight.position.set(-40, 40, -15);
         spotLight.castShadow = true;
-        spotLight.shadow.mapSize = new THREE.Vector3(1024,1024)
+        spotLight.shadow.mapSize = new THREE.Vector3(1024, 1024)
         spotLight.shadow.camera.far = 130
         spotLight.shadow.camera.near = 40
         scene.add(spotLight);
@@ -84,6 +91,37 @@ function ThreeMap() {
         // add the output of the renderer to the html element
         // document.getElementById("WebGL-output").appendChild(renderer.domElement);
 
+        var step = 0;
+        renderScene();
+
+        function renderScene() {
+            stats.update()
+            cube.rotation.x += 0.02
+            cube.rotation.y += 0.02
+            cube.rotation.z += 0.02
+
+            step += 0.04
+            sphere.position.x = 20 + (10 * Math.cos(step))
+            sphere.position.y = 2 + (10 * Math.abs(Math.sin(step)))
+            requestAnimationFrame(renderScene)
+            renderer.render(scene, camera)
+        }
+        function initStats() {
+          
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+
+        }
         // render the scene
         renderer.render(scene, camera);
         container.appendChild(renderer.domElement); //生成的渲染的实例, 这个要放到对应的dom容器里面
@@ -91,7 +129,11 @@ function ThreeMap() {
     }
 
     return (
-        <div id='container'></div> //要渲染的虚拟dom
+        <div>
+            <div id='container'></div> 
+            <div id="Stats-output"></div>
+        </div>
+
     )
 }
 export default ThreeMap;
